@@ -1,0 +1,25 @@
+scenario pedestrian() <scenario_type = SUCCESS, duration = [:30]>{
+ map{
+    Junction junction with type == "cross";
+    }
+ init{
+   Car blue_car with color == "blue";
+   Pedestrian ped with relative_to=blue_car, angle=90, left_distance=20,front_distance=70;
+  }
+ execute{
+   parallel(){
+     serial(){
+      ped.cross(targetSpeed = 1, scale=30); 
+      ped.stop();
+     }
+      blue_car.followLane(targetSpeed=20, scale=100);
+   }
+  }
+ oracle{
+  periodic: blue_car.isCollided() || Scenario.isTimeout();}}
+
+
+main{
+  load_map("as");
+  serial(){pedestrian();}
+}

@@ -1,0 +1,20 @@
+scenario case1()<duration = [:30]>{
+ map{Lane lane;}
+ init{
+    Car blue_car with color == "blue";
+   	Pedestrian ped with relative_to=blue_car, angle=90, left_distance=15,front_distance=70;
+    }
+ execute{  
+ 	parallel(){
+ 		 blue_car.followLane(targetSpeed=20, scale=100);
+		 [distance(ped, blue_car) < 40] ped.cross(targetSpeed = 2, scale=20);
+		 [distance(ped, blue_car) < 20] blue_car.brake(); } }
+  oracle{
+  	periodic:  blue_car.isCollided() || Scenario.isTimeout();  }}
+
+main{
+  load_map("as");
+  serial(){
+  	case1();
+  	}
+}

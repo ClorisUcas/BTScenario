@@ -1,0 +1,20 @@
+ scenario case7() <duration = [:20]>{
+	 map{Junction junction with type == "cross";}
+	 init{
+	    Car blue_car with color == "blue";
+	    Car red_car with color == "red", relative_to=blue_car, angle=90, left_distance=30,front_distance=40;
+	 }
+	 execute{
+	 	parallel(){
+	 		red_car.followLane(targetSpeed=30, scale=100);
+            blue_car.followLane(targetSpeed=30, scale=100);
+            [distance(blue_car, red_car) < 20] blue_car.brake();}}
+	 oracle{
+	  	periodic: blue_car.isCollided() || Scenario.isTimeout(); }}
+
+main{
+  load_map("as");
+  serial(){
+  	case1();
+  	}
+}

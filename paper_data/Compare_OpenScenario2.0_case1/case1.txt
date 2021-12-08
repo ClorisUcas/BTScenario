@@ -1,0 +1,20 @@
+scenario case1() <duration = [:30]>{
+ map{Junction junction with type == "roundbout";}
+ init{
+    Car blue_car with color == "blue";
+    Car red_car with color == "red", relative_to=blue_car, angle=90, left_distance=30,front_distance=50;
+    }
+ execute{  
+  parallel(){
+    blue_car.turn(targetSpeed=20, direction="right");
+    red_car.followLane(targetSpeed=30, scale=100); } }
+  oracle{
+    periodic:  Scenario.isTimeout();
+  }}
+
+main{
+  load_map("as");
+  serial(){
+  	case1();
+  	}
+}

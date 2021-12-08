@@ -1,0 +1,32 @@
+scenario left_turn() <duration = [:30]>{
+	map{
+		Junction t_junction with type == "+";	}
+	init{
+		Car car1 with color == "blue";
+		Car car2 with color == "red", relative_to=car1, angle=180, left_distance=4,front_distance=80;
+		Car car3 with color == "green", relative_to=car1, angle=90, left_distance=30,front_distance=50;
+        Car car4 with color == "purple", relative_to=car1, angle=-90, right_distance=30,front_distance=55;
+		}
+	execute{
+		parallel(){
+			[distance(car1, car2) < 60] car2.followLane(targetSpeed=40, scale=100);
+			car1.turn(targetSpeed=30, direction="left");
+            parallel(){
+                car3.followLane(targetSpeed=20, scale=100) [distance(car1, car3) > 100];	
+                [distance(car1, car4) < 40] serial(){
+                    car4.followLane(targetSpeed=20, scale=10);
+                    car4.turn(direction="left");
+					car4.stop();
+                    }
+                }
+        }
+    }
+	oracle{	 
+		periodic: car1.isCollided() || Scenario.isTimeout();	}}
+
+main{
+  load_map("as");
+  serial(){
+  	left_turn();
+  	}
+}

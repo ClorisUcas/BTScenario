@@ -1,0 +1,48 @@
+# Compare with OpenScenario2.0 https://releases.asam.net/OpenSCENARIO/2.0-concepts/ASAM_OpenSCENARIO_2-0_Concept_Paper.html#_use_cases_for_scenarios
+#We donnot talk about behaviors of ego, so we give a blue car to show these scenarios. we statistics the scenarios lines of Scenic and our language.
+
+
+#Test1: 3.2.8  Scenario definition for entering a roundabout
+#A left turn at a roundabout should be described as a scenario
+#The openscenario2.0 does not describe test cretiria ,so we do not describe the oracle mpdule in this scenario.
+#21 12
+scenario case1(){
+ map{Junction junction with type == "roundbout";}
+ init{
+    Car ego with color == "blue", type == "sedan", absolute_position == junction.roads[4].left_lane;
+    Car car with color == "red", type == "sedan", absolute_position == junction.roads[3].left_lane;
+    }
+ execute{  
+  parallel(){
+    ego.turnLeft();
+    car.followLane(); } }
+  oracle{
+    periodic: ego.isCollided() && Scenario.isTimeout();
+  }}
+
+#Test2: 3.2.9 High-level description of a motorcycle cut-in
+#The motorcycle cut-in as an example for high-level description
+#27 13
+scenario case2(){
+ map{Road road with type =="two_lane_one_way";}
+ init{
+    Car ego with color == "blue", speed == 50, absolute_position == road.right_lane;
+    Car by with speed == "80", absolute_position == road.left_lane;
+    }
+ execute{  
+  parallel(){
+    ego.followLane();
+    serial(){
+        car.followLane();
+        [distance(by,ego) > 30] by.changeLane();  }   } }
+    oracle{
+    periodic: ego.isCollided() && Scenario.isTimeout();
+  }}
+
+main{
+  load_map("as");
+  serial(){
+  	case1();
+  	case2();
+  	}
+}

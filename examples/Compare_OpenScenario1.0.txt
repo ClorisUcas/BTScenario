@@ -1,0 +1,65 @@
+# Compare with OpenScenario1.0 https://github.com/carla-simulator/scenario_runner/blob/master/srunner/examples/LaneChangeSimple.xosc
+#The examples explain in https://github.com/carla-simulator/scenario_runner/blob/master/Docs/list_of_scenarios.md
+#We donnot talk about behaviors of ego, so we give a blue car to show these scenarios. we statistics the scenarios lines of Scenic and our language.
+
+
+#Test1: PedestrianCrossingFront.xosc
+#296 14
+scenario case1(){
+ map{Lane lane;}
+ init{
+    Car ego with absolute_position == lane;
+    Pedestrian ped with absolute_position == lane.left_boundary.center_position;
+    Environment w with type == "rainy";
+    }
+ execute{  
+ 	serial(){
+ 		 ego.followLane();
+ 		 parallel(){
+ 		 	[distance(ped, ego) < 20] ped.cross();
+ 		 	ego.brake(); } }}
+  oracle{
+  	periodic:  ego.isCollided() && ego.isWrongDirection();  }}
+
+#Test2: IntersectionCollisionAvoidance
+#247 11
+scenario case2(){
+ map{Junction junction with type == "t";}
+ init{
+    Car ego with color == "blue", absolute_position == junction.roads[1].right_lane;
+    Pedestrian ped with absolute_position == junction.roads[2].right_lane.right_boundary.end_position;
+    }
+ execute{
+ 	parallel(){  
+ 		ped.cross(end = junction.roads[2].left_lane.left_boundary.end_position);
+	 	ego.turnLeft(); }	}
+ oracle{
+  periodic:  ego.isCollided() && ego.isWrongDirection();  }}
+
+#Test3: FollowLeadingVehicle
+#240 13
+scenario case3(){
+ map{Lane lane;}
+ init{
+    Car ego with color == "blue", speed == 40,  absolute_position == lane;
+    Car car with speed == 50, relative_to == ego, front_distance == 100;
+    }
+ execute{
+ 	parallel(){  
+	 	ego.follow(car) [distance(ego, car) < 7];
+	 	serial(){
+	 		car.followLane();
+	 		[distance(ego, car) > 200] car.followLane(type = "decelerate") [car.speed == 0];
+	 	}}}
+ oracle{
+  periodic:  ego.isCollided() &&  ego.isWrongDirection(); }}
+
+main{
+  load_map("as");
+  serial(){
+  	case1();
+  	case2();
+  	case3();
+  	}
+}
+

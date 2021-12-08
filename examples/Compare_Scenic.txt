@@ -1,0 +1,199 @@
+#We donnot talk about behaviors of ego, so we give a blue car to show these scenarios. we statistics the scenarios lines of Scenic and our language.
+
+#Compare with Carla challenge https://carlachallenge.org/challenge/nhtsa/
+https://github.com/BerkeleyLearnVerify/Scenic/blob/master/examples/carla/Carla_Challenge
+
+#Test1: Ego-vehicle loses control due to bad conditions on the road and it must recover, coming back to its original lane.
+#PS: In Scenic, they use a leading car to be one of bad situations.
+
+#17 8
+scenario case1(){
+ map{Lane l;}
+ init{
+    Car ego with color == "blue", absolute_position == l;
+    Car car1 with color == "red", relative_to == ego, front_distance == 500;
+   }
+ execute{ 	serial(){ego.follow(car);} }
+ oracle{
+  periodic: ego.isCollided() && Scenario.isTimeout(); }}
+
+#Test2: Leading vehicle decelerates suddenly due to an obstacle and ego-vehicle must react, performing an emergency brake or an avoidance maneuver.
+#29 14
+scenario case2(){
+ map{Lane l;}
+ init{
+    Car ego with color == "blue", absolute_position == l;
+    Car car with color == "red", relative_to == ego, front_distance == 500;
+    Obstacle obs with relative_to == car1, front_distance == 100;
+     }
+ execute{
+ 	parallel(){  
+ 		serial(){
+	 		car1.followLane() [distance(car, obs) < 30];
+	 		car1.brake();}
+	 	ego.follow(car); } }
+ oracle{
+  	periodic: car.isCollided() && Scenario.isTimeout(); }}
+
+#Test3:  The ego-vehicle encounters an obstacle / unexpected entity on the road and must perform an emergency brake or an avoidance maneuver
+#32 13
+scenario case3(){
+ map{Lane l;}
+ init{
+    Car ego with color == "blue", absolute_position == l;
+    Pedestrian ped with relative_to == ego, angle == 90,  front_distance == 100, left_distance == 3;
+   }
+ execute{
+ 	parallel(){  
+ 		ped.cross();
+ 		serial(){
+	 		ego.followLane();
+	 		[distance(ego, ped) < 50] ego.brake(); }}}
+ oracle{
+  periodic: ego.isCollided() && Scenario.isTimeout(); }}
+
+#Test4: While performing a maneuver, the ego-vehicle finds an obstacle / unexpected entity on the road and must perform an emergency brake or an avoidance maneuver.
+# 32 11
+scenario case4(){
+ map{Junction junction with type == "t";}
+ init{
+    Car ego with color == "blue", absolute_position == junction.roads[1].right_lane;
+    Pedestrian ped with absolute_position == junction.roads[2].right_lane.right_boundary.end_position;
+  }
+ execute{
+ 	parallel(){  
+ 		ped.cross(end = junction.roads[2].left_lane.left_boundary.end_position);
+	 	ego.turnLeft(); }	}
+ oracle{
+  periodic: ego.isCollided() && Scenario.isTimeout(); }}
+
+#Test5: Ego-vehicle performs a lane changing to evade a leading vehicle, which is moving too slowly.
+#PS: Scenic just uses one car to be a leading car, ego changes lane twice. We give the case5.1 to represent the Test5 and give the case5.2 to compare with Scenic
+
+#33 13
+scenario case5(){
+	 map{Road road with type = "two_lane_one_way";}
+	 init{
+	    Car ego with color == "blue", speed == 50, absolute_position == road.left_lane;
+	    Car car_left with color == "red", speed == 30, relative_to == ego, front_distance == 500; }
+	 execute{
+	 	parallel(){
+	 		car_left.followLane();
+	 		serial(){
+	 			ego.follow(car_left) [ego.distance(car_left) < 50];
+	 			ego.changeLane(path = road.right_lane);}}
+	 oracle{
+	  	periodic: ego.isCollided() && Scenario.is_timeout(); }}
+
+
+#Test6: Ego-vehicle must go around a blocking object using the opposite lane, yielding to oncoming traffic.
+#42 19
+ scenario case6(){
+	 map{Road road with type == "two_lane_two_way";}
+	 init{
+	    Car ego with color == "blue", speed == 50, absolute_position == road.right_lane;
+	    Car car with color == "red", speed == 30, absolute_position == road.left_lane;
+	    Car bloking_car with relative_to = ego, front_distance = 10;
+	   }
+	 execute{
+	 	parallel(){
+	 		car.followLane();
+	 		serial(){
+	 			ego.followLane() [distance(ego, car) > 15];
+	 			ego.changeLane(path = left_lane);
+	 			parallel(){
+	 			[distance(ego, car)  <5] ego.brake();
+	 			[distance(ego, car) >= 5] serial(){
+		 			ego.changeLane(type = "decelerate", path = right_lane);
+		 			[distance(ego, blocking_car) > 10] ego.followLane();
+		 		}}}}}
+	 oracle{
+	  	periodic: ego.isCollided() && Scenario.isTimeout(); }}
+
+#Test7: Ego-vehicle is going straight at an intersection but a crossing vehicle runs a red light, forcing the ego-vehicle to perform a collision avoidance maneuver.
+#43 13
+ scenario case7(){
+	 map{Junction junction with type == "cross";}
+	 init{
+	    Car ego with color == "blue", speed == 50, absolute_position == junction.road[3];
+	    Car car with color == "red", speed == 30, absolute_position == junction.road[4];
+	 }
+	 execute{
+	 	parallel(){
+	 		car.followLane();
+	 		serial(){
+	 			ego.followLane();
+	 			[distance(ego, car) < 15] ego.brake();}}}
+	 oracle{
+	  	periodic: ego.isCollided() && Scenario.isTimeout(); }}
+
+#Test8: Ego-vehicle is performing an unprotected left turn at an intersection, yielding to oncoming traffic.
+#47 13
+ scenario case8(){
+	 map{Junction junction with type == "cross";}
+	 init{
+	    Car ego with color == "blue", speed == 50, absolute_position == junction.road[1];
+	    Car car with color == "red", speed == 30, absolute_position == junction.road[3];
+	    }
+	 execute{
+	 	parallel(){
+	 		car.followLane();
+	 		serial(){
+	 			ego.turnLeft();
+	 			[distance(ego, car) < 6] ego.brake();}}}
+	 oracle{
+	  	periodic: ego.isCollided() && Scenario.isTimeout(); }}
+
+#Test9: Ego-vehicle is performing a right turn at an intersection, yielding to crossing traffic.
+#44 13
+ scenario case9(){
+	 map{Junction junction with type == "cross";}
+	 init{
+	    Car ego with color == "blue", speed == 50, absolute_position == junction.road[4];
+	    Car car with color == "red", speed == 30, absolute_position == junction.road[1];
+	    }
+	 execute{
+	 	parallel(){
+	 		car.followLane();
+	 		serial(){
+	 			ego.turnRight();
+	 			[distance(ego,car) < 6] ego.brake();}}}
+	 oracle{
+	  	periodic: ego.isCollided() && Scenario.isTimeout(); }}
+
+#Test10: Ego-vehicle needs to negotiate with other vehicles to cross an unsignalized intersection. In this situation it is assumed that the first to enter the intersection has priority.
+#33 13
+ scenario case10(){
+	 map{Junction junction with type == "cross";}
+	 init{
+	    Car ego with color == "blue", speed == 30, absolute_position == junction.road[1];
+	    Car car with color == "red", speed == 30, absolute_position == junction.road[2] ;
+	   }
+	 execute{
+	 	parallel(){
+	 		car.followLane();
+	 		serial(){
+	 			ego.followLane();
+	 			[distance(ego,car) < 6] ego.brake();}}}
+	 oracle{
+	  	periodic: ego.isCollided() && Scenario.isTimeout(); }}
+
+
+
+main{
+  load_map("as");
+  serial(){
+  	case1();
+  	case2();
+  	case3();
+  	case4();
+  	case5();
+  	case6();
+  	case7();
+  	case8();
+  	case9();
+  	case10();
+  	}
+}
+
+

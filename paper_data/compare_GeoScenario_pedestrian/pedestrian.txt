@@ -1,0 +1,21 @@
+scenario pedestrian()<duration = [:30]>{
+ map{
+ 	Junction crossroad with type == "cross";}
+ init{
+    Car blue_car with color=="blue";
+    Pedestrian person with relative_to=blue_car, angle=90, left_distance=20,front_distance=80;
+  }
+ execute{
+ 	parallel(){ 
+ 		 blue_car.turn(targetSpeed=20, direction="right");
+ 		 [distance(blue_car, person) <= 60] person.cross(targetSpeed=1.8, scale=30); } }
+ oracle{
+  periodic: blue_car.isCollided() || Scenario.isTimeout(); }}
+
+main{
+  load_map("as");
+  serial(){
+
+  	pedestrian();
+  	}
+}
